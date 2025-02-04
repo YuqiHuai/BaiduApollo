@@ -262,6 +262,31 @@ void OnLanePlanning::RunOnce(const LocalView& local_view,
   static bool failed_to_update_reference_line = false;
   local_view_ = local_view;
   const double start_timestamp = Clock::NowInSeconds();
+
+  // DeFT
+  ptr_trajectory_pb->mutable_deft()
+        ->set_start_timestamp(start_timestamp);
+  ptr_trajectory_pb->mutable_deft()
+    ->set_routing_header(local_view_.routing->header().sequence_num());
+  ptr_trajectory_pb->mutable_deft()
+    ->set_chassis_header(local_view_.chassis->header().sequence_num());
+  ptr_trajectory_pb->mutable_deft()
+    ->set_localization_header(local_view_.localization_estimate->header().sequence_num());
+  ptr_trajectory_pb->mutable_deft()
+    ->set_prediction_header(local_view_.prediction_obstacles->header().sequence_num());
+  if (local_view_.pad_msg != nullptr) {
+    ptr_trajectory_pb->mutable_deft()
+      ->set_pad_header(local_view_.pad_msg->header().sequence_num());
+  }
+  if (local_view_.traffic_light != nullptr) {
+    ptr_trajectory_pb->mutable_deft()
+      ->set_traffic_light_header(local_view_.traffic_light->header().sequence_num());
+  }
+  if (local_view_.stories != nullptr) {
+    ptr_trajectory_pb->mutable_deft()
+      ->set_stories_header(local_view_.stories->header().sequence_num());
+  }
+
   const double start_system_timestamp =
       std::chrono::duration<double>(
           std::chrono::system_clock::now().time_since_epoch())

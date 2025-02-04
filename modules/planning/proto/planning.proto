@@ -49,6 +49,17 @@ message RSSInfo {
   optional double acc_lat_right_range_maximum = 9;
 }
 
+message DeFT {
+  required double start_timestamp = 1; 
+  required int32 routing_header = 2;
+  required int32 chassis_header = 3;
+  required int32 localization_header = 4;
+  required int32 prediction_header = 5;
+  optional int32 traffic_light_header = 6 [default = -1];
+  optional int32 stories_header = 7 [default = -1];
+  optional int32 pad_header = 8 [default = -1];
+}
+
 // next id: 24
 message ADCTrajectory {
   optional apollo.common.Header header = 1;
@@ -116,6 +127,8 @@ message ADCTrajectory {
   
   // complete dead end flag
   optional bool car_in_dead_end = 24;
+
+  optional DeFT deft = 25;
 
   // output related to RSS
   optional RSSInfo rss_info = 100;
