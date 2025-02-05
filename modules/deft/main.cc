@@ -1,3 +1,4 @@
+#include <chrono>
 #include <iostream>
 #include <map>
 #include <string>
@@ -32,6 +33,7 @@ using ::apollo::cyber::record::RecordReader;
 using ::apollo::cyber::record::RecordWriter;
 
 using ::apollo::canbus::Chassis;
+using ::apollo::common::Header;
 using ::apollo::common::TrajectoryPoint;
 using ::apollo::localization::LocalizationEstimate;
 using ::apollo::perception::TrafficLightDetection;
@@ -48,6 +50,8 @@ using ::apollo::planning::PlanningConfig;
 using ::apollo::planning_internal::PlanningData;
 
 int main(int argc, char *argv[]) {
+  auto init_start = std::chrono::steady_clock::now();
+
   ::apollo::cyber::Init("deft_icse_24");
 
   // Initialize Planning
@@ -67,7 +71,12 @@ int main(int argc, char *argv[]) {
       std::unique_ptr<PlanningBase>(new OnLanePlanning(injector_));
   planning_->Init(config_);
 
+  auto init_end = std::chrono::steady_clock::now();
+  std::chrono::duration<double> init_elapsed = init_end - init_start;
+
   // DeFT
+  std::chrono::duration<double> io_duration(0);
+  std::chrono::duration<double> planning_duration(0);
 
   apollo::cyber::Clock::SetMode(apollo::cyber::proto::MODE_MOCK);
   apollo::cyber::Clock::SetNowInSeconds(0);
@@ -77,9 +86,10 @@ int main(int argc, char *argv[]) {
   int input_seq_num = 0;
 
   while (true) {
-    // check if 0_planning.pb.txt exists
+    auto frame_start = std::chrono::steady_clock::now();
+    // check if 0_planning.bin exists
     std::string input_file_name =
-        deft_tmp_dir + "/" + std::to_string(input_seq_num) + "/planning.pb.txt";
+        deft_tmp_dir + "/" + std::to_string(input_seq_num) + "/planning.bin";
     std::ifstream input_file(input_file_name);
     if (!input_file.good()) {
       break;
@@ -94,34 +104,36 @@ int main(int argc, char *argv[]) {
     TrafficLightDetection tld;
     Stories stories;
     ADCTrajectory planning;
+    Header header;
 
     apollo::cyber::common::GetProtoFromFile(
-        deft_tmp_dir + "/" + std::to_string(input_seq_num) + "/routing.pb.txt",
+        deft_tmp_dir + "/" + std::to_string(input_seq_num) + "/routing.bin",
         &routing);
     apollo::cyber::common::GetProtoFromFile(
-        deft_tmp_dir + "/" + std::to_string(input_seq_num) + "/chassis.pb.txt",
+        deft_tmp_dir + "/" + std::to_string(input_seq_num) + "/chassis.bin",
         &chassis);
     apollo::cyber::common::GetProtoFromFile(deft_tmp_dir + "/" +
                                                 std::to_string(input_seq_num) +
-                                                "/localization.pb.txt",
+                                                "/localization.bin",
                                             &adc_position);
+    apollo::cyber::common::GetProtoFromFile(
+        deft_tmp_dir + "/" + std::to_string(input_seq_num) + "/prediction.bin",
+        &prediction);
     apollo::cyber::common::GetProtoFromFile(deft_tmp_dir + "/" +
                                                 std::to_string(input_seq_num) +
-                                                "/prediction.pb.txt",
-                                            &prediction);
-    apollo::cyber::common::GetProtoFromFile(deft_tmp_dir + "/" +
-                                                std::to_string(input_seq_num) +
-                                                "/traffic_light.pb.txt",
+                                                "/traffic_light.bin",
                                             &tld);
     // apollo::cyber::common::GetProtoFromFile(deft_tmp_dir + "/" +
-    //                                             std::to_string(input_seq_num) +
-    //                                             "/stories.pb.txt",
+    //                                             std::to_string(input_seq_num)
+    //                                             +
+    //                                             "/stories.bin",
     //                                         &stories);
     apollo::cyber::common::GetProtoFromFile(
-        deft_tmp_dir + "/" + std::to_string(input_seq_num) + "/planning.pb.txt",
-        &planning);
+        deft_tmp_dir + "/" + std::to_string(input_seq_num) + "/header.bin",
+        &header);
+    apollo::cyber::Clock::SetNowInSeconds(header.timestamp_sec());
 
-    apollo::cyber::Clock::SetNowInSeconds(planning.header().timestamp_sec());
+    auto frame_io = std::chrono::steady_clock::now();
 
     LocalView local_view_;
     local_view_.routing = std::make_shared<RoutingResponse>(routing);
@@ -132,22 +144,37 @@ int main(int argc, char *argv[]) {
         std::make_shared<PredictionObstacles>(prediction);
     local_view_.traffic_light = std::make_shared<TrafficLightDetection>(tld);
     local_view_.stories = std::make_shared<Stories>(stories);
-    
+
     ADCTrajectory adc_trajectory_pb;
     planning_->RunOnce(local_view_, &adc_trajectory_pb);
 
     std::string output_file_name =
-        deft_tmp_dir + "/" + std::to_string(input_seq_num) + "/deft.pb.txt";
+        deft_tmp_dir + "/" + std::to_string(input_seq_num) + "/deft.bin";
 
-    apollo::cyber::common::SetProtoToASCIIFile(adc_trajectory_pb, output_file_name);
-    // std::ofstream output(output_file_name);
-    // output << json;
-    // output.close();
+    apollo::cyber::common::SetProtoToBinaryFile(adc_trajectory_pb,
+                                                output_file_name);
+    // apollo::cyber::common::SetProtoToASCIIFile(adc_trajectory_pb,
+    // output_file_name);
+
+    auto frame_planning = std::chrono::steady_clock::now();
+    auto io_elapsed = frame_io - frame_start;
+
+    io_duration += (frame_io - frame_start);
+    planning_duration += (frame_planning - frame_io);
 
     input_seq_num++;
   }
 
+  auto final_end = std::chrono::steady_clock::now();
+  std::chrono::duration<double> total_elapsed = final_end - init_start;
+
   std::cout << "stopped at input_seq_num: " << input_seq_num << std::endl;
+  std::cout << "INIT TIME: " << init_elapsed.count() << " seconds" << std::endl;
+  std::cout << "TOTAL TIME: " << total_elapsed.count() << " seconds"
+            << std::endl;
+  std::cout << "IO TIME: " << io_duration.count() << " seconds" << std::endl;
+  std::cout << "PLANNING TIME: " << planning_duration.count() << " seconds"
+            << std::endl;
   return 0;
 }
 
