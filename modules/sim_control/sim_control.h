@@ -183,8 +183,7 @@ class SimControl : SimControlInterface {
   apollo::common::TrajectoryPoint next_point_;
 
   common::PathPoint adc_position_;
-  double adc_position_timestamp_;
-  
+
   // Linearize reader/timer callbacks and external operations.
   std::mutex mutex_;
 
