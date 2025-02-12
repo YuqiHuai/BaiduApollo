@@ -2,6 +2,7 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <cstdlib>
 
 #include "cyber/proto/record.pb.h"
 #include "modules/canbus/proto/chassis.pb.h"
@@ -81,11 +82,20 @@ int main(int argc, char *argv[]) {
   apollo::cyber::Clock::SetMode(apollo::cyber::proto::MODE_MOCK);
   apollo::cyber::Clock::SetNowInSeconds(0);
 
-  std::string deft_tmp_dir = "/apollo/modules/deft/testdata";
+  const char* user = std::getenv("USER");
+  if (user == nullptr) {
+    std::cerr << "USER environment variable is not set. Exiting program." << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+
+  std::string deft_tmp_dir = user != nullptr 
+    ? "/home/" + std::string(user) + "/deft/testdata" 
+    : "/apollo/modules/deft/testdata";
 
   int input_seq_num = 0;
 
   while (true) {
+    std::cout << "DeFT Processing Frame " << input_seq_num << std::endl;
     auto frame_start = std::chrono::steady_clock::now();
     // check if 0_planning.bin exists
     std::string input_file_name =
