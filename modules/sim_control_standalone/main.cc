@@ -7,11 +7,12 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-// bazel build //modules/sim_control_standalone:main
-// bazel run //modules/sim_control_standalone:main
-// /apollo/bazel-bin/modules/sim_control_standalone/main
+// bazel build //modules/sim_control_standalone:sim_control_standalone
+// bazel run //modules/sim_control_standalone:sim_control_standalone
+// ./bazel-bin/modules/sim_control_standalone/sim_control_standalone
 
-// pkill -SIGKILL -f 'sim_control_standalone'
+// nohup /apollo/bazel-bin/modules/sim_control/sim_control_main &
+// ps -ef | grep "sim_control_main" | grep -v 'grep' | awk '{print $2}' | xargs kill -9
 
 int float_test(const char *s) {
     char *endptr;

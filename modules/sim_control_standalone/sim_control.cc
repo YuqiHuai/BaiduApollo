@@ -15,7 +15,7 @@
  *****************************************************************************/
 
 #include "modules/sim_control_standalone/sim_control.h"
-#include <iostream>
+
 #include "cyber/common/file.h"
 #include "cyber/time/clock.h"
 #include "modules/common/adapters/adapter_gflags.h"
@@ -365,7 +365,6 @@ bool SimControl::PerfectControlModel(TrajectoryPoint* point,
   auto current_time = Clock::NowInSeconds();
   const auto& trajectory = current_trajectory_->trajectory_point();
   *gear_position = current_trajectory_->gear();
-  double error = 0.0;
 
   if (!received_planning_) {
     prev_point_ = next_point_;
@@ -377,29 +376,9 @@ bool SimControl::PerfectControlModel(TrajectoryPoint* point,
       Freeze();
     } else {
       // Determine the status of the car based on received planning message.
-
-      // compute planning time error
-      int last_localization_index = 0;
-      while (last_localization_index < trajectory.size() - 1) {
-        auto x1 = trajectory.Get(last_localization_index).path_point().x();
-        auto y1 = trajectory.Get(last_localization_index).path_point().y();
-        auto x2 = trajectory.Get(last_localization_index + 1).path_point().x();
-        auto y2 = trajectory.Get(last_localization_index + 1).path_point().y();
-        auto distance1 = std::hypot(x1 - adc_position_.x(), y1 - adc_position_.y());
-        auto distance2 = std::hypot(x2 - adc_position_.x(), y2 - adc_position_.y());
-        if (distance1 < distance2) {
-          break;
-        }
-        ++last_localization_index;
-      }
-
-      auto planned_time = trajectory.Get(last_localization_index).relative_time() +
-                          current_trajectory_->header().timestamp_sec();
-      error = planned_time - adc_position_timestamp_;
-
       while (next_point_index_ < trajectory.size() &&
              current_time > trajectory.Get(next_point_index_).relative_time() +
-                                current_trajectory_->header().timestamp_sec() - error) {
+                                current_trajectory_->header().timestamp_sec()) {
         ++next_point_index_;
       }
 
@@ -412,11 +391,22 @@ bool SimControl::PerfectControlModel(TrajectoryPoint* point,
         return false;
       }
 
+      prev_point_index_ = next_point_index_ - 1;
+
       next_point_ = trajectory.Get(next_point_index_);
+      prev_point_ = trajectory.Get(prev_point_index_);
     }
   }
 
-  *point = next_point_;
+  if (current_time > next_point_.relative_time() +
+                         current_trajectory_->header().timestamp_sec()) {
+    // Don't try to extrapolate if relative_time passes last point
+    *point = next_point_;
+  } else {
+    *point = InterpolateUsingLinearApproximation(
+        prev_point_, next_point_,
+        current_time - current_trajectory_->header().timestamp_sec());
+  }
   return true;
 }
 
@@ -506,7 +496,6 @@ void SimControl::PublishLocalization(const TrajectoryPoint& point) {
   adc_position_.set_x(pose->position().x());
   adc_position_.set_y(pose->position().y());
   adc_position_.set_z(pose->position().z());
-  adc_position_timestamp_ = localization->header().timestamp_sec();
 }
 
 void SimControl::PublishDummyPrediction() {
