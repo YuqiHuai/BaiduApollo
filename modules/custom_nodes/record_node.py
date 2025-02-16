@@ -10,7 +10,7 @@ if __name__ == '__main__':
 
     if mode == "start":
         cyber_recorder = "/apollo/bazel-bin/cyber/tools/cyber_recorder/cyber_recorder"
-        start_record_cmd = f'{cyber_recorder} record -o {TEMP_OUTPUT_PATH}/{sys.argv[2]} -a &'
+        start_record_cmd = f'{cyber_recorder} record -i 600 -o {TEMP_OUTPUT_PATH}/{sys.argv[2]} -a &'
 
         subprocess.Popen(start_record_cmd,
                          shell=True,
