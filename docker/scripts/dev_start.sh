@@ -34,6 +34,7 @@ VERSION_AARCH64="dev-aarch64-18.04-20201218_0030"
 USER_VERSION_OPT=
 
 FAST_MODE="no"
+FASTEST_MODE="no"
 
 GEOLOC=
 
@@ -105,6 +106,10 @@ function parse_arguments() {
 
             -f | --fast)
                 FAST_MODE="yes"
+                ;;
+
+            --fastest )
+                FASTEST_MODE="yes"
                 ;;
 
             -g | --geo)
@@ -365,8 +370,10 @@ function main() {
     local local_volumes=
     setup_devices_and_mount_local_volumes local_volumes
 
-    mount_map_volumes
-    mount_other_volumes
+    if [[ "${FASTEST_MODE}" != "yes" ]]; then
+        mount_map_volumes
+        mount_other_volumes
+    fi
 
     info "Starting Docker container \"${DEV_CONTAINER}\" ..."
 
