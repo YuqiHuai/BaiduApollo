@@ -55,8 +55,6 @@ DEFAULT_MAPS=(
 )
 
 DEFAULT_TEST_MAPS=(
-    sunnyvale_big_loop
-    sunnyvale_loop
 )
 
 function show_usage() {
