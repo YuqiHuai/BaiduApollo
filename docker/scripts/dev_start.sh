@@ -368,8 +368,9 @@ function main() {
     local local_volumes=
     setup_devices_and_mount_local_volumes local_volumes
 
-    mount_map_volumes
-    mount_other_volumes
+    # YUQI: disable other volumes to speed up launch process
+    # mount_map_volumes
+    # mount_other_volumes
 
     info "Starting Docker container \"${DEV_CONTAINER}\" ..."
 
