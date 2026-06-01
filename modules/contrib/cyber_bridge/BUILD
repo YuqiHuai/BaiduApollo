@@ -1,4 +1,5 @@
 load("//tools:apollo_package.bzl", "apollo_cc_library", "apollo_cc_test", "apollo_component", "apollo_package", "apollo_cc_binary")
+load("//tools/proto:proto.bzl", "apollo_py_binary")
 load("//tools:cpplint.bzl", "cpplint")
 
 package(default_visibility = ["//visibility:public"])
@@ -30,6 +31,17 @@ apollo_cc_library(
     deps = [
         "//cyber",
         "@boost",
+    ],
+)
+
+apollo_py_binary(
+    name = "service_bridge",
+    srcs = ["service_bridge.py"],
+    deps = [
+        "//cyber/python/cyber_py3:cyber",
+        "//modules/common_msgs/external_command_msgs:command_status_py_pb2",
+        "//modules/common_msgs/external_command_msgs:lane_follow_command_py_pb2",
+        "//modules/common_msgs/external_command_msgs:valet_parking_command_py_pb2",
     ],
 )
 
