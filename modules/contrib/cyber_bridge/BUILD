@@ -39,6 +39,7 @@ apollo_py_binary(
     srcs = ["service_bridge.py"],
     deps = [
         "//cyber/python/cyber_py3:cyber",
+        "//modules/common_msgs/external_command_msgs:action_command_py_pb2",
         "//modules/common_msgs/external_command_msgs:command_status_py_pb2",
         "//modules/common_msgs/external_command_msgs:lane_follow_command_py_pb2",
         "//modules/common_msgs/external_command_msgs:valet_parking_command_py_pb2",

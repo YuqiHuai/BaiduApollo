@@ -113,5 +113,18 @@ The valet-parking request uses the protobuf JSON field names from
 `apollo.external_command.ValetParkingCommand` and is forwarded to
 `/apollo/external_command/valet_parking`.
 
+Send an action command:
+
+```shell
+curl -X POST http://127.0.0.1:9091/action \
+  -H 'Content-Type: application/json' \
+  -d '{"command":"PULL_OVER"}'
+```
+
+The action request uses the protobuf JSON field names from
+`apollo.external_command.ActionCommand` and is forwarded to
+`/apollo/external_command/action`. The `command` field accepts enum names such
+as `FOLLOW`, `CHANGE_LEFT`, `CHANGE_RIGHT`, `PULL_OVER`, `STOP`, and `START`.
+
 Use `GET /healthz` to check whether the HTTP process is running. A successful
 health check does not guarantee that the Cyber service is available.

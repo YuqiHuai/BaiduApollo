@@ -14,6 +14,7 @@ from socketserver import ThreadingMixIn
 from google.protobuf import json_format
 
 from cyber.python.cyber_py3 import cyber
+from modules.common_msgs.external_command_msgs import action_command_pb2
 from modules.common_msgs.external_command_msgs import command_status_pb2
 from modules.common_msgs.external_command_msgs import lane_follow_command_pb2
 from modules.common_msgs.external_command_msgs import valet_parking_command_pb2
@@ -21,6 +22,7 @@ from modules.common_msgs.external_command_msgs import valet_parking_command_pb2
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 9091
+DEFAULT_ACTION_SERVICE_NAME = "/apollo/external_command/action"
 DEFAULT_LANE_FOLLOW_SERVICE_NAME = "/apollo/external_command/lane_follow"
 DEFAULT_VALET_PARKING_SERVICE_NAME = "/apollo/external_command/valet_parking"
 MAX_BODY_BYTES = 1024 * 1024
@@ -163,6 +165,7 @@ def parse_args():
     )
     parser.add_argument("--host", default=DEFAULT_HOST)
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
+    parser.add_argument("--action-service-name", default=DEFAULT_ACTION_SERVICE_NAME)
     parser.add_argument(
         "--lane-follow-service-name", default=DEFAULT_LANE_FOLLOW_SERVICE_NAME
     )
@@ -179,6 +182,13 @@ def main():
     node = cyber.Node("service_bridge")
     sequence_numbers = itertools.count(1)
     services = {
+        "/action": ExternalCommandService(
+            node,
+            args.action_service_name,
+            action_command_pb2.ActionCommand,
+            "action",
+            sequence_numbers,
+        ),
         "/lane_follow": ExternalCommandService(
             node,
             args.lane_follow_service_name,
