@@ -20,7 +20,7 @@ from modules.common_msgs.external_command_msgs import lane_follow_command_pb2
 from modules.common_msgs.external_command_msgs import valet_parking_command_pb2
 
 
-DEFAULT_HOST = "127.0.0.1"
+DEFAULT_HOST = "0.0.0.0"
 DEFAULT_PORT = 9091
 DEFAULT_ACTION_SERVICE_NAME = "/apollo/external_command/action"
 DEFAULT_LANE_FOLLOW_SERVICE_NAME = "/apollo/external_command/lane_follow"
