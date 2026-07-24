@@ -21,6 +21,7 @@
 #include "modules/planning/common/trajectory_stitcher.h"
 
 #include <algorithm>
+#include <iomanip>
 
 #include "absl/strings/str_cat.h"
 
@@ -181,6 +182,19 @@ std::vector<TrajectoryPoint> TrajectoryStitcher::ComputeStitchingTrajectory(
       vehicle_state.x(), vehicle_state.y(),
       prev_trajectory->TrajectoryPointAt(
           static_cast<uint32_t>(position_matched_index)));
+
+  AINFO << std::setprecision(17)
+        << "DEFT_DEBUG stitch current_timestamp=" << current_timestamp
+        << " prev_traj_header_time=" << prev_trajectory->header_time()
+        << " prev_traj_size=" << prev_trajectory_size
+        << " veh_rel_time=" << veh_rel_time
+        << " time_matched_index=" << time_matched_index
+        << " position_matched_index=" << position_matched_index
+        << " time_matched_pt=(" << time_matched_point.path_point().x() << ","
+        << time_matched_point.path_point().y() << ")"
+        << " vehicle_state=(" << vehicle_state.x() << "," << vehicle_state.y()
+        << ")"
+        << " frenet_s=" << frenet_sd.first << " frenet_d=" << frenet_sd.second;
 
   if (replan_by_offset) {
     auto lon_diff = time_matched_point.path_point().s() - frenet_sd.first;

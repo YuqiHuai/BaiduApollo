@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -204,6 +205,16 @@ int main(int argc, char* argv[]) {
   // loop, so the stitching-state behavior (see
   // bugs/apollo-v7-simcontrol-trajectory-stitcher-flicker/) is identical
   // to what main.cc does with testdata/. --
+  // Optional real-time pacing: sleep between frames to match the real
+  // wall-clock gap the original recording had, instead of replaying as
+  // fast as possible. Tests whether any hidden real-time-sensitive logic
+  // (a budget, a background-thread race, anything not driven by the
+  // mocked Clock) explains divergence that appears even when every
+  // Clock-visible input and the mocked timestamp are reproduced exactly.
+  const bool realtime_pacing = std::getenv("DEFT_REPLAY_REALTIME") != nullptr;
+  bool have_prev_timestamp = false;
+  double prev_start_timestamp = 0.0;
+
   std::chrono::duration<double> planning_duration(0);
   int replayed = 0;
   int skipped_missing_required_input = 0;
@@ -256,6 +267,17 @@ int main(int argc, char* argv[]) {
     const bool has_pad =
         deft_meta.has_pad_header() &&
         LookupBySequence(pad_index, deft_meta.pad_header(), &pad);
+
+    if (realtime_pacing) {
+      if (have_prev_timestamp) {
+        const double gap = deft_meta.start_timestamp() - prev_start_timestamp;
+        if (gap > 0.0 && gap < 5.0) {  // sanity bound against bogus gaps
+          std::this_thread::sleep_for(std::chrono::duration<double>(gap));
+        }
+      }
+      prev_start_timestamp = deft_meta.start_timestamp();
+      have_prev_timestamp = true;
+    }
 
     apollo::cyber::Clock::SetNowInSeconds(deft_meta.start_timestamp());
 

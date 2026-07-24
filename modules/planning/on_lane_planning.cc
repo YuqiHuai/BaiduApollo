@@ -17,6 +17,7 @@
 #include "modules/planning/on_lane_planning.h"
 
 #include <algorithm>
+#include <iomanip>
 #include <limits>
 #include <list>
 #include <utility>
@@ -377,12 +378,35 @@ void OnLanePlanning::RunOnce(const LocalView& local_view,
   const double planning_cycle_time =
       1.0 / static_cast<double>(FLAGS_planning_loop_rate);
 
+  AINFO << "DEFT_DEBUG frame routing=" << local_view_.routing->header().sequence_num()
+        << " chassis=" << local_view_.chassis->header().sequence_num()
+        << " localization=" << local_view_.localization_estimate->header().sequence_num()
+        << " prediction=" << local_view_.prediction_obstacles->header().sequence_num()
+        << " start_ts=" << std::setprecision(17) << start_timestamp
+        << " vs=(" << std::setprecision(17) << vehicle_state.x() << ","
+        << vehicle_state.y() << ") heading=" << vehicle_state.heading()
+        << " v=" << vehicle_state.linear_velocity()
+        << " a=" << vehicle_state.linear_acceleration()
+        << " driving_mode=" << vehicle_state.driving_mode()
+        << " last_pub_traj_null=" << (last_publishable_trajectory_ == nullptr)
+        << " last_pub_traj_size="
+        << (last_publishable_trajectory_ ? last_publishable_trajectory_->NumOfPoints() : -1)
+        << " last_pub_traj_header_time="
+        << (last_publishable_trajectory_ ? std::to_string(last_publishable_trajectory_->header_time()) : "n/a")
+        << " last_routing_changed="
+        << util::IsDifferentRouting(last_routing_, *local_view_.routing);
+
   std::string replan_reason;
   std::vector<TrajectoryPoint> stitching_trajectory =
       TrajectoryStitcher::ComputeStitchingTrajectory(
           vehicle_state, start_timestamp, planning_cycle_time,
           FLAGS_trajectory_stitching_preserved_length, true,
           last_publishable_trajectory_.get(), &replan_reason);
+
+  AINFO << "DEFT_DEBUG stitching_trajectory.size=" << stitching_trajectory.size()
+        << " replan_reason=[" << replan_reason << "]"
+        << " back=(" << std::setprecision(17) << stitching_trajectory.back().path_point().x()
+        << "," << stitching_trajectory.back().path_point().y() << ")";
 
   injector_->ego_info()->Update(stitching_trajectory.back(), vehicle_state);
   const uint32_t frame_num = static_cast<uint32_t>(seq_num_++);
