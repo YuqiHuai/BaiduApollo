@@ -45,6 +45,7 @@ using ::apollo::storytelling::Stories;
 using ::apollo::planning::ADCTrajectory;
 using ::apollo::planning::DependencyInjector;
 using ::apollo::planning::LocalView;
+using ::apollo::planning::PadMessage;
 using ::apollo::planning::OnLanePlanning;
 using ::apollo::planning::PlanningBase;
 using ::apollo::planning::PlanningConfig;
@@ -113,6 +114,7 @@ int main(int argc, char *argv[]) {
     PredictionObstacles prediction;
     TrafficLightDetection tld;
     Stories stories;
+    PadMessage pad;
     ADCTrajectory planning;
     Header header;
 
@@ -139,6 +141,8 @@ int main(int argc, char *argv[]) {
     //                                             "/stories.bin",
     //                                         &stories);
     apollo::cyber::common::GetProtoFromFile(
+        deft_tmp_dir + "/" + std::to_string(input_seq_num) + "/pad.bin", &pad);
+    apollo::cyber::common::GetProtoFromFile(
         deft_tmp_dir + "/" + std::to_string(input_seq_num) + "/header.bin",
         &header);
     apollo::cyber::Clock::SetNowInSeconds(header.timestamp_sec());
@@ -154,6 +158,15 @@ int main(int argc, char *argv[]) {
         std::make_shared<PredictionObstacles>(prediction);
     local_view_.traffic_light = std::make_shared<TrafficLightDetection>(tld);
     local_view_.stories = std::make_shared<Stories>(stories);
+    // The pad message selects the EMERGENCY_PULL_OVER / EMERGENCY_STOP
+    // scenarios (ScenarioManager reads Frame::GetPadMsgDrivingAction), so a
+    // replay without it can never enter them. Frames recorded before the
+    // operator acted get an empty pad.bin and must leave pad_msg null, which
+    // is the state planning itself held then: handing it an empty message
+    // instead would take the other side of Frame's null check.
+    if (pad.ByteSizeLong() > 0) {
+      local_view_.pad_msg = std::make_shared<PadMessage>(pad);
+    }
 
     ADCTrajectory adc_trajectory_pb;
     planning_->RunOnce(local_view_, &adc_trajectory_pb);
